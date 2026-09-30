@@ -2,6 +2,10 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from datetime import datetime, timezone
+from app.services.checker import perform_health_check
+from app.models.check import Check
+from app.schemas.check import CheckResponse
 
 from app.core.database import get_db
 from app.models.monitor import Monitor
@@ -97,3 +101,45 @@ async def delete_monitor(
     await db.delete(monitor)
     await db.commit()
     return None
+
+@router.post("/{monitor_id}/check", response_model=CheckResponse)
+async def trigger_monitor_check(
+    monitor_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Manually trigger a health check for a specific monitor."""
+    query = select(Monitor).where(Monitor.id == monitor_id)
+    result = await db.execute(query)
+    monitor = result.scalar_one_or_none()
+    
+    if not monitor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Monitor not found"
+        )
+
+    # Perform health check
+    check_result = await perform_health_check(
+        url=monitor.url,
+        method=monitor.method,
+        timeout_seconds=monitor.timeout_seconds
+    )
+
+    # Update monitor status
+    monitor.status = "up" if check_result.is_up else "down"
+    monitor.last_checked_at = datetime.now(timezone.utc)
+    db.add(monitor)
+
+    # Create check record
+    check_record = Check(
+        monitor_id=monitor.id,
+        status_code=check_result.status_code,
+        response_time_ms=check_result.response_time_ms,
+        is_up=check_result.is_up,
+        error_message=check_result.error_message
+    )
+    db.add(check_record)
+
+    await db.commit()
+    await db.refresh(check_record)
+    return check_record
