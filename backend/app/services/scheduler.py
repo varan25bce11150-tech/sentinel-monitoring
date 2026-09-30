@@ -6,12 +6,13 @@ from app.core.database import AsyncSessionLocal
 from app.models.monitor import Monitor
 from app.models.check import Check
 from app.services.checker import perform_health_check
+from app.services.incident import process_check_incident
 
 scheduler = AsyncIOScheduler()
 
 
 async def run_monitor_checks():
-    """Background task to run health checks for all active monitors."""
+    """Background task to run health checks and process incidents."""
     async with AsyncSessionLocal() as db:
         query = select(Monitor).where(Monitor.is_active == True)
         result = await db.execute(query)
@@ -39,13 +40,14 @@ async def run_monitor_checks():
             )
             db.add(check_record)
 
+            # Evaluate incident creation or resolution
+            await process_check_incident(db, monitor.id, check_result)
+
         await db.commit()
 
 
 def start_scheduler():
-    """Starts the background scheduler loop."""
     if not scheduler.running:
-        # Run background checks every 30 seconds
         scheduler.add_job(
             run_monitor_checks,
             "interval",
@@ -57,6 +59,5 @@ def start_scheduler():
 
 
 def shutdown_scheduler():
-    """Shuts down the background scheduler."""
     if scheduler.running:
         scheduler.shutdown()

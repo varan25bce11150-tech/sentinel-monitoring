@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from app.services.checker import perform_health_check
 from app.models.check import Check
 from app.schemas.check import CheckResponse
+from app.services.incident import process_check_incident
 
 from app.core.database import get_db
 from app.models.monitor import Monitor
@@ -139,6 +140,9 @@ async def trigger_monitor_check(
         error_message=check_result.error_message
     )
     db.add(check_record)
+
+    # Evaluate incident tracking
+    await process_check_incident(db, monitor.id, check_result)
 
     await db.commit()
     await db.refresh(check_record)
