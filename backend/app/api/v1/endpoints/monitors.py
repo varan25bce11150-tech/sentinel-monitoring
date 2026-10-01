@@ -7,6 +7,8 @@ from app.services.checker import perform_health_check
 from app.models.check import Check
 from app.schemas.check import CheckResponse
 from app.services.incident import process_check_incident
+from app.api.deps import get_current_user
+from app.models.user import User
 
 from app.core.database import get_db
 from app.models.monitor import Monitor
@@ -19,10 +21,16 @@ router = APIRouter()
 async def list_monitors(
     skip: int = 0,
     limit: int = 100,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    """Retrieve all monitors."""
-    query = select(Monitor).offset(skip).limit(limit)
+    """Retrieve monitors owned by the authenticated user."""
+    query = (
+        select(Monitor)
+        .where(Monitor.user_id == current_user.id)
+        .offset(skip)
+        .limit(limit)
+    )
     result = await db.execute(query)
     monitors = result.scalars().all()
     return monitors
@@ -31,15 +39,15 @@ async def list_monitors(
 @router.post("/", response_model=MonitorResponse, status_code=status.HTTP_201_CREATED)
 async def create_monitor(
     monitor_in: MonitorCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    """Create a new monitor."""
-    monitor = Monitor(**monitor_in.model_dump())
+    """Create a new monitor attached to the current user."""
+    monitor = Monitor(**monitor_in.model_dump(), user_id=current_user.id)
     db.add(monitor)
     await db.commit()
     await db.refresh(monitor)
     return monitor
-
 
 @router.get("/{monitor_id}", response_model=MonitorResponse)
 async def get_monitor(
