@@ -1,49 +1,57 @@
-export interface User {
+﻿export interface Monitor {
   id: number;
-  email: string;
-  is_active: boolean;
-  is_superuser: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export type MonitorStatus = 'up' | 'down' | 'unknown';
-
-export interface Monitor {
-  id: number;
-  user_id?: number;
   name: string;
+  type?: string;
   url: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' | 'PATCH';
-  interval_seconds: number;
-  timeout_seconds: number;
+  method?: string;
+  interval?: number;
+  interval_seconds?: number;
+  timeout_seconds?: number;
   is_active: boolean;
-  status: MonitorStatus;
+  status: string;
+  last_check?: string;
   last_checked_at?: string;
-  created_at: string;
-  updated_at: string;
+  response_time?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export interface Check {
-  id: number;
-  monitor_id: number;
-  status_code?: number;
-  response_time_ms?: number;
-  is_up: boolean;
-  error_message?: string;
-  checked_at: string;
+export interface MonitorCreate {
+  name: string;
+  type?: string;
+  url: string;
+  method?: string;
+  interval?: number;
+  interval_seconds?: number;
+  timeout_seconds?: number;
+  is_active?: boolean;
 }
 
 export interface Incident {
   id: number;
   monitor_id: number;
-  started_at: string;
-  resolved_at?: string;
+  monitor_name?: string;
+  status: string;
+  title?: string;
+  description?: string;
   cause?: string;
-  is_resolved: boolean;
+  is_resolved?: boolean;
+  started_at: string;
+  resolved_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export interface Token {
-  access_token: string;
-  token_type: string;
+export interface User {
+  id: number;
+  email: string;
+  is_active: boolean;
+}
+
+export interface Metric {
+  id: number;
+  monitor_id: number;
+  status_code: number;
+  response_time: number;
+  created_at: string;
 }

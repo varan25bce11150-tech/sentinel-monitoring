@@ -1,0 +1,97 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: sentinel_db
+    restart: always
+    environment:
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel_password
+      POSTGRES_DB: sentinel_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: sentinel_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sentinel_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: postgresql+psycopg://sentinel:sentinel_password@db:5432/sentinel_db
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: sentinel-super-secret-production-key-change-me
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sentinel_worker
+    restart: always
+    command: celery -A app.core.celery_app worker --loglevel=info
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: postgresql+psycopg://sentinel:sentinel_password@db:5432/sentinel_db
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: sentinel-super-secret-production-key-change-me
+    depends_on:
+      - backend
+      - redis
+
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sentinel_beat
+    restart: always
+    command: celery -A app.core.celery_app beat --loglevel=info
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: postgresql+psycopg://sentinel:sentinel_password@db:5432/sentinel_db
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: sentinel-super-secret-production-key-change-me
+    depends_on:
+      - backend
+      - redis
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sentinel_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
