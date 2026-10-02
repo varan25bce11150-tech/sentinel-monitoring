@@ -1,6 +1,6 @@
-# Sentinel — Developer Monitoring Infrastructure
+# Sentinel Monitoring — Developer Infrastructure
 
-Sentinel is an enterprise-grade uptime, health, and telemetry monitoring platform built for developers and site reliability engineers. It provides real-time service tracking, latency analytics, and automated health checks through a dark-themed telemetry console.
+Sentinel Monitoring is an enterprise-grade uptime, health, and telemetry platform built for developers and site reliability engineers. It provides real-time service tracking, latency analytics, and automated health checks through a dark-themed telemetry console.
 
 ---
 
@@ -58,8 +58,8 @@ Sentinel is an enterprise-grade uptime, health, and telemetry monitoring platfor
 ### 1. Clone the Repository
 
 ```bash
-git clone [https://github.com/your-username/sentinel.git](https://github.com/your-username/sentinel.git)
-cd sentinel
+git clone [https://github.com/your-username/sentinel-monitoring.git](https://github.com/your-username/sentinel-monitoring.git)
+cd sentinel-monitoring
 ```
 
 ### 2. Configure Environment Variables
@@ -68,9 +68,9 @@ Create a `.env` file in the root directory:
 
 ```env
 # Backend Environment
-PROJECT_NAME=Sentinel
+PROJECT_NAME=Sentinel Monitoring
 SECRET_KEY=your-super-secret-key-change-this-in-production
-DATABASE_URL=postgresql+asyncpg://sentinel:sentinel_pass@db:5432/sentinel_db
+DATABASE_URL=postgresql+asyncpg://sentinel:sentinel_pass@db:5432/sentinel_monitoring_db
 
 # Frontend Environment
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
